@@ -190,11 +190,11 @@ h1 {
   z-index: 0;
   left: var(--x);
   top: var(--y);
-  width: 5px;
-  height: 7px;
-  border: 1px solid #d5d5d0;
-  border-radius: 70% 30% 60% 40%;
-  background: #fff;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #222;
+  border-radius: 0 50% 50% 50%;
+  background: #c5e0fc;
   transform: rotate(45deg);
 }
 
@@ -212,6 +212,32 @@ h1 {
   line-height: 1;
 }
 
+.hazard-polluted {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #111;
+  border-radius: 0 50% 50% 50%;
+  background: #111;
+  font-size: 0;
+  transform: rotate(45deg);
+}
+
+.hazard-algae {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: url("img/algae-bloom.svg") center / contain no-repeat;
+  font-size: 0;
+}
+
+.hazard-insect {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: url("img/water-insect.svg") center / contain no-repeat;
+  font-size: 0;
+}
+
 .hazard-insect-one {
   left: 49%;
   top: 57%;
@@ -225,6 +251,21 @@ h1 {
 .hazard-insect-three {
   left: 73%;
   top: 29%;
+}
+
+.hazard-insect-four {
+  left: 24.7%;
+  top: 29.2%;
+}
+
+.hazard-insect-five {
+  left: 63.3%;
+  top: 40.5%;
+}
+
+.hazard-insect-six {
+  left: 88.3%;
+  top: 62%;
 }
 
 .hazard-polluted-one {
@@ -242,6 +283,31 @@ h1 {
   top: 22%;
 }
 
+.hazard-polluted-four {
+  left: 61.3%;
+  top: 11.5%;
+}
+
+.hazard-polluted-five {
+  left: 84.9%;
+  top: 29.3%;
+}
+
+.hazard-polluted-six {
+  left: 62.2%;
+  top: 44.7%;
+}
+
+.hazard-polluted-seven {
+  left: 2.4%;
+  top: 51.3%;
+}
+
+.hazard-polluted-eight {
+  left: 82.3%;
+  top: 63.9%;
+}
+
 .hazard-algae-one {
   left: 87%;
   top: 42%;
@@ -257,19 +323,27 @@ h1 {
   top: 70%;
 }
 
+.hazard-algae-four {
+  left: 13.4%;
+  top: 10.6%;
+}
+
+.hazard-algae-five {
+  left: 31.4%;
+  top: 10.9%;
+}
+
 .player {
   position: absolute;
   z-index: 3;
-  left: 22%;
-  top: 60%;
-  display: grid;
-  width: 10px;
-  height: 10px;
-  place-items: center;
-  border: 1px solid #f3ae00;
-  border-radius: 4px;
-  background: #fff9db;
-  box-shadow: 0 0 0 1px #fff;
+  left: 46%;
+  top: 94%;
+  width: 14px;
+  height: 19px;
+  background-image: url("img/cw_logo.png");
+  background-repeat: no-repeat;
+  background-position: -9.7px 0;
+  background-size: 33px auto;
 }
 
 .game-message {
@@ -469,31 +543,37 @@ h1 {
 }
 
 .legend-icon {
+  position: relative;
   display: grid;
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
   place-items: center;
-  border-radius: 50%;
-  background: #ededeb;
-  font-size: 10px;
-  font-weight: 700;
+  background: transparent;
 }
 
-.clean {
-  color: #d3a600;
+.legend-icon.clean::before,
+.legend-icon.polluted::before {
+  width: 8px;
+  height: 8px;
+  border: 1px solid #222;
+  border-radius: 0 50% 50% 50%;
+  background: #c5e0fc;
+  content: "";
+  transform: rotate(45deg);
 }
 
-.polluted {
-  color: #333;
+.legend-icon.polluted::before {
+  border-color: #111;
+  background: #111;
 }
 
-.insect {
-  color: #222;
+.legend-icon.insect {
+  background: url("img/water-insect.svg") center / contain no-repeat;
 }
 
-.algae {
-  color: #555;
+.legend-icon.algae {
+  background: url("img/algae-bloom.svg") center / contain no-repeat;
 }
 
 .legend strong,
@@ -686,6 +766,30 @@ h1 {
 }
 
 @media (max-width: 540px) {
+  .drop {
+    width: 5px;
+    height: 5px;
+  }
+
+  .hazard,
+  .hazard-insect,
+  .hazard-algae {
+    width: 10px;
+    height: 10px;
+  }
+
+  .hazard-polluted {
+    width: 6px;
+    height: 6px;
+  }
+
+  .player {
+    width: 9px;
+    height: 12px;
+    background-position: -6.3px 0;
+    background-size: 21px auto;
+  }
+
   .top-bar {
     padding: 0 14px;
   }
