@@ -47,13 +47,6 @@ body {
   height: auto;
 }
 
-.brand-game {
-  margin: -2px 0 0 22px;
-  font-size: 5px;
-  font-weight: 700;
-  letter-spacing: .3px;
-}
-
 .game-status,
 .drops-left {
   display: flex;
@@ -753,13 +746,13 @@ h1 {
 }
 
 @media (min-width: 900px) {
-  .brand img {
-    width: 120px;
+  .game-status {
+    padding: 8px 13px;
+    font-size: 10px;
   }
 
-  .brand-game {
-    margin-left: 26px;
-    font-size: 6px;
+  .brand img {
+    width: 120px;
   }
 
   .game-layout {
