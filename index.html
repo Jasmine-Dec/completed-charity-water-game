@@ -91,15 +91,28 @@
                     <span class="hazard hazard-insect hazard-insect-six" aria-label="Water-borne insect"></span>
                     <span class="player" id="player" aria-label="Charity: water jerry can player"></span>
                     <div class="game-message" id="game-message" hidden>
-                        <strong id="message-title"></strong>
-                        <span id="message-text"></span>
+                        <div class="setup-content" id="setup-content">
+                            <strong>Choose your maze</strong>
+                            <span>Select a difficulty to set up your run.</span>
+                            <label class="setup-difficulty-label" for="difficulty-select">Difficulty</label>
+                            <select class="setup-difficulty" id="difficulty-select" aria-label="Choose maze difficulty">
+                                <option value="easy">Easy</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                            <button class="restart-button" id="setup-start-button" type="button">Start Game</button>
+                        </div>
+                        <strong id="message-title" hidden></strong>
+                        <span id="message-text" hidden></span>
                         <button class="restart-button resume-button" id="resume-button" type="button" hidden>Resume</button>
-                        <button class="restart-button" id="restart-button" type="button">Play again?</button>
+                        <button class="restart-button" id="restart-button" type="button" hidden>Play again?</button>
                     </div>
                 </div>
             </div>
             <div class="board-footer">
-                <span>Yellow jerry can = you · Clear the route without touching hazards</span>
+                <span>
+                    <a href="https://www.charitywater.org/" target="_blank" rel="noopener noreferrer">Click here to see charity: water's site and donation page!</a>
+                </span>
             </div>
         </section>
 
@@ -117,6 +130,7 @@
             <section class="info-card route-card">
                 <p class="card-caption">Collect clean water. Avoid the hazards.</p>
                 <ul class="legend">
+                    <li><span class="legend-icon you" aria-hidden="true"></span><strong>You</strong></li>
                     <li><span class="legend-icon clean" aria-hidden="true"></span><strong>Clean water</strong></li>
                     <li><span class="legend-icon polluted" aria-hidden="true"></span><strong>Polluted drop</strong></li>
                     <li><span class="legend-icon insect" aria-hidden="true"></span><strong>Water-borne insect</strong></li>
@@ -144,6 +158,7 @@
         </aside>
     </main>
     <audio id="win-sound" src="freesound_gamestudio-clear-combo-7-394494.mp3" preload="auto"></audio>
+    <audio id="collect-sound" src="freesound_gamestudio-button-394464.mp3" preload="auto"></audio>
     <script src="script.js"></script>
 </body>
 </html>

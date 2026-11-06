@@ -5,17 +5,100 @@ const scoreDisplay = document.getElementById("score");
 const livesDisplay = document.getElementById("lives");
 const dropsDisplay = document.getElementById("drops-remaining");
 const gameMessage = document.getElementById("game-message");
+const setupContent = document.getElementById("setup-content");
 const messageTitle = document.getElementById("message-title");
 const messageText = document.getElementById("message-text");
 const restartButton = document.getElementById("restart-button");
+const setupStartButton = document.getElementById("setup-start-button");
 const resumeButton = document.getElementById("resume-button");
 const resetButton = document.getElementById("reset-button");
 const pauseButton = document.getElementById("pause-button");
 const winSound = document.getElementById("win-sound");
+const collectSound = document.getElementById("collect-sound");
 const mazeBoard = document.querySelector(".maze-inner");
 const walls = document.querySelectorAll(".wall");
+const difficultySelect = document.getElementById("difficulty-select");
 const directionButtons = document.querySelectorAll(".key[data-direction]");
 const isMobileDevice = window.matchMedia("(max-width: 540px)").matches;
+const difficultySettings = {
+  easy: {
+    stepX: 6.1,
+    stepY: 6.8,
+    startX: 3.5,
+    startY: 4,
+    maxX: 96,
+    maxY: 96,
+    topRowY: 2.5,
+    rightColumnX: 96.5,
+    bottomRowY: 96,
+    hazardClasses: [
+      "hazard-insect-one",
+      "hazard-insect-two",
+      "hazard-polluted-one",
+      "hazard-polluted-two",
+      "hazard-algae-one",
+    ],
+  },
+  normal: {
+    stepX: 4.5,
+    stepY: 5.5,
+    startX: 3.5,
+    startY: 4,
+    maxX: 96,
+    maxY: 96,
+    topRowY: 2.5,
+    rightColumnX: 96.5,
+    bottomRowY: 96,
+    hazardClasses: [
+      "hazard-insect-one",
+      "hazard-insect-two",
+      "hazard-insect-three",
+      "hazard-insect-four",
+      "hazard-polluted-one",
+      "hazard-polluted-two",
+      "hazard-polluted-three",
+      "hazard-polluted-four",
+      "hazard-algae-one",
+      "hazard-algae-two",
+      "hazard-algae-three",
+    ],
+  },
+  hard: {
+    stepX: 3.8,
+    stepY: 4.8,
+    startX: 3.5,
+    startY: 4,
+    maxX: 96,
+    maxY: 96,
+    topRowY: 2.5,
+    rightColumnX: 96.5,
+    bottomRowY: 96,
+    hazardClasses: [
+      "hazard-insect-one",
+      "hazard-insect-two",
+      "hazard-insect-three",
+      "hazard-insect-four",
+      "hazard-insect-five",
+      "hazard-insect-six",
+      "hazard-polluted-one",
+      "hazard-polluted-two",
+      "hazard-polluted-three",
+      "hazard-polluted-four",
+      "hazard-polluted-five",
+      "hazard-polluted-six",
+      "hazard-polluted-seven",
+      "hazard-polluted-eight",
+      "hazard-algae-one",
+      "hazard-algae-two",
+      "hazard-algae-three",
+      "hazard-algae-four",
+      "hazard-algae-five",
+    ],
+  },
+};
+let currentDifficulty = difficultySelect.value;
+let hazards = Array.from(mazeBoard.querySelectorAll(".hazard"));
+let allDrops = [];
 const startingLives = 3;
 const playerBorderClearance = 1;
 const startingPlayerX = 46;
@@ -24,165 +107,267 @@ const startingPlayerY = Math.min(
   100 - ((player.offsetHeight + playerBorderClearance) / mazeBoard.clientHeight) * 100,
 );
 
-// Arrange drops in a regular grid and skip positions that overlap a wall.
-for (let y = 4; y <= 96; y += 5.5) {
-  for (let x = 3.5; x <= 96; x += 4.5) {
+function setHazardsForDifficulty() {
+  const selectedDifficulty = difficultySettings[currentDifficulty];
+
+  hazards.forEach((hazard) => {
+    hazard.hidden = true;
+  });
+
+  selectedDifficulty.hazardClasses.forEach((hazardClassName) => {
+    const hazard = mazeBoard.querySelector(`.${hazardClassName}`);
+    if (hazard) {
+      hazard.hidden = false;
+    }
+  });
+
+  hazards = Array.from(mazeBoard.querySelectorAll(".hazard")).filter((hazard) => !hazard.hidden);
+}
+
+function buildDropLayout() {
+  const settings = difficultySettings[currentDifficulty];
+
+  Array.from(mazeBoard.querySelectorAll(".drop")).forEach((drop) => drop.remove());
+
+  for (let y = settings.startY; y <= settings.maxY; y += settings.stepY) {
+    if (Math.abs(y - settings.bottomRowY) < 2) continue;
+
+    for (let x = settings.startX; x <= settings.maxX; x += settings.stepX) {
+      if (isDropPositionOpen(x, y)) {
+        const drop = document.createElement("span");
+        drop.className = "drop";
+        drop.style.left = `${x}%`;
+        drop.style.top = `${y}%`;
+        mazeBoard.append(drop);
+      }
+    }
+  }
+
+  for (let x = settings.startX; x <= settings.maxX; x += settings.stepX) {
+    if (isDropPositionOpen(x, settings.topRowY)) {
+      const drop = document.createElement("span");
+      drop.className = "drop";
+      drop.style.left = `${x}%`;
+      drop.style.top = `${settings.topRowY}%`;
+      mazeBoard.append(drop);
+    }
+  }
+
+  for (let y = settings.startY; y <= settings.maxY; y += settings.stepY) {
+    if (isDropPositionOpen(settings.rightColumnX, y)) {
+      const drop = document.createElement("span");
+      drop.className = "drop";
+      drop.style.left = `${settings.rightColumnX}%`;
+      drop.style.top = `${y}%`;
+      mazeBoard.append(drop);
+    }
+  }
+
+  for (let x = settings.startX; x <= settings.maxX; x += settings.stepX) {
+    if (isDropPositionOpen(x, settings.bottomRowY)) {
+      const drop = document.createElement("span");
+      drop.className = "drop";
+      drop.style.left = `${x}%`;
+      drop.style.top = `${settings.bottomRowY}%`;
+      mazeBoard.append(drop);
+    }
+  }
+
+  const manualDropAdditions = [
+    [8.5, 18.0], [22.0, 18.0], [39.5, 20.5], [58.5, 20.5], [74.0, 20.5],
+    [90.5, 20.5], [13.5, 57.5], [31.0, 57.5], [48.5, 57.5], [66.5, 57.5],
+    [84.0, 57.5], [31.0, 75.0], [52.0, 75.0], [77.0, 75.0],
+  ];
+
+  manualDropAdditions.forEach(([x, y]) => {
+    if (!isDropPositionOpen(x, y, 0)) return;
+
     const drop = document.createElement("span");
     drop.className = "drop";
     drop.style.left = `${x}%`;
     drop.style.top = `${y}%`;
     mazeBoard.append(drop);
-
-    if (overlapsWall(drop, -2)) {
-      drop.remove();
-    }
-  }
-}
-
-const additionalDropPositions = [
-  [77.4, 2.7], [31.3, 2.8], [88.9, 2.8], [93.5, 2.8], [54.7, 3.0],
-  [58.0, 3.0], [62.1, 3.0], [85.5, 3.0], [45.3, 3.2], [49.9, 3.2],
-  [71.9, 3.2], [40.9, 3.3], [82.4, 3.3], [8.7, 3.5], [97.3, 3.5],
-  [22.1, 3.7], [13.2, 3.8], [17.2, 3.8], [26.4, 4.0], [97.3, 10.0],
-  [97.3, 14.8], [97.0, 20.6], [97.8, 27.3], [97.6, 32.6], [97.9, 39.4],
-  [97.9, 46.7], [97.5, 53.9], [57.4, 55.9], [43.0, 56.6], [46.7, 56.6],
-  [50.9, 56.6], [43.0, 61.2], [97.2, 61.6], [42.7, 67.7], [97.6, 68.6],
-  [42.7, 73.8], [97.0, 74.0], [10.5, 79.4], [97.6, 79.4], [18.9, 79.5],
-  [15.4, 79.7], [63.7, 79.7], [68.1, 79.7], [43.0, 80.0], [58.4, 80.0],
-  [97.7, 89.2], [31.5, 96.2], [27.7, 96.3], [22.9, 96.6], [8.9, 96.8],
-  [14.3, 96.8], [18.5, 96.8], [63.0, 96.8], [67.5, 96.8], [71.6, 96.8],
-  [58.8, 97.0], [36.0, 97.3], [76.9, 97.3], [93.4, 97.3], [97.1, 97.3],
-  [81.4, 97.5], [85.6, 97.8], [89.0, 97.8],
-];
-
-additionalDropPositions.forEach(([x, y]) => {
-  const drop = document.createElement("span");
-  drop.className = "drop";
-  drop.style.left = `${x - 0.5}%`;
-  drop.style.top = `${y - 0.7}%`;
-  mazeBoard.append(drop);
-
-  const dropBounds = drop.getBoundingClientRect();
-  const overlapsAnotherDrop = Array.from(mazeBoard.querySelectorAll(".drop")).some((otherDrop) => {
-    if (otherDrop === drop) return false;
-
-    const otherBounds = otherDrop.getBoundingClientRect();
-    return (
-      dropBounds.left < otherBounds.right + 2 &&
-      dropBounds.right > otherBounds.left - 2 &&
-      dropBounds.top < otherBounds.bottom + 2 &&
-      dropBounds.bottom > otherBounds.top - 2
-    );
   });
 
-  if (overlapsWall(drop) || overlapsAnotherDrop) {
-    drop.remove();
+  function removeLowerOfTopOverlapPairs() {
+    const topDrops = Array.from(mazeBoard.querySelectorAll(".drop"))
+      .map((drop) => ({
+        drop,
+        left: parseFloat(drop.style.left),
+        top: parseFloat(drop.style.top),
+      }))
+      .filter(({ top }) => top >= 1 && top <= 18);
+
+    topDrops.sort((a, b) => a.left - b.left || a.top - b.top);
+
+    for (let index = 1; index < topDrops.length; index += 1) {
+      const previous = topDrops[index - 1];
+      const current = topDrops[index];
+
+      if (Math.abs(current.left - previous.left) < 1.2 && current.top - previous.top < 3) {
+        const lowerDrop = current.top > previous.top ? current.drop : previous.drop;
+        lowerDrop.remove();
+      }
+    }
   }
-});
 
-const bottomRightDropPositions = [
-  [80.0, 89.5],
-  [84.5, 89.5],
-  [89.0, 89.5],
-  [93.5, 89.5],
-];
+  removeLowerOfTopOverlapPairs();
 
-bottomRightDropPositions.forEach(([x, y]) => {
+  const cleanDrops = Array.from(mazeBoard.querySelectorAll(".drop"));
+  if (isMobileDevice) {
+    cleanDrops.forEach((drop) => drop.remove());
+
+    for (let y = 3; y <= 97; y += settings.stepY) {
+      for (let x = 3; x <= 97; x += settings.stepX) {
+        if (!isDropPositionOpen(x, y, -1)) continue;
+
+        const drop = document.createElement("span");
+        drop.className = "drop";
+        drop.style.left = `${x}%`;
+        drop.style.top = `${y}%`;
+        mazeBoard.append(drop);
+      }
+    }
+
+    ["hazard-insect", "hazard-polluted", "hazard-algae"].forEach((hazardType) => {
+      const hazardsOfType = mazeBoard.querySelectorAll(`.${hazardType}`);
+      hazardsOfType.forEach((hazard, index) => {
+        if (index >= 2) hazard.remove();
+      });
+    });
+  }
+
+  pruneUnsafeDrops();
+  allDrops = mazeBoard.querySelectorAll(".drop");
+}
+
+function isDropPositionOpen(x, y, inset = -2) {
   const drop = document.createElement("span");
   drop.className = "drop";
   drop.style.left = `${x}%`;
   drop.style.top = `${y}%`;
   mazeBoard.append(drop);
-});
 
-const cleanDrops = Array.from(mazeBoard.querySelectorAll(".drop"));
+  const inOpenSpace =
+    !overlapsWall(drop, inset) &&
+    !Array.from(hazards).some((hazard) => {
+      const dropBounds = drop.getBoundingClientRect();
+      const hazardBounds = hazard.getBoundingClientRect();
+      return (
+        dropBounds.left < hazardBounds.right + 1 &&
+        dropBounds.right > hazardBounds.left - 1 &&
+        dropBounds.top < hazardBounds.bottom + 1 &&
+        dropBounds.bottom > hazardBounds.top - 1
+      );
+    }) &&
+    (() => {
+      const dropBounds = drop.getBoundingClientRect();
+      const mazeBounds = mazeBoard.getBoundingClientRect();
+      return (
+        dropBounds.left > mazeBounds.left + 2 &&
+        dropBounds.right < mazeBounds.right - 2 &&
+        dropBounds.top > mazeBounds.top + 2 &&
+        dropBounds.bottom < mazeBounds.bottom - 2
+      );
+    })();
 
-if (isMobileDevice) {
-  cleanDrops.forEach((drop) => drop.remove());
+  drop.remove();
+  return inOpenSpace;
+}
 
-  // Use a responsive grid so small screens keep drops spaced away from walls.
-  for (let y = 3; y <= 97; y += 5.5) {
-    for (let x = 3; x <= 97; x += 4.5) {
-      const drop = document.createElement("span");
-      drop.className = "drop";
-      drop.style.left = `${x}%`;
-      drop.style.top = `${y}%`;
-      mazeBoard.append(drop);
-
-      if (overlapsWall(drop, -1)) drop.remove();
-    }
-  }
-
-  ["hazard-insect", "hazard-polluted", "hazard-algae"].forEach((hazardType) => {
-    const hazardsOfType = mazeBoard.querySelectorAll(`.${hazardType}`);
-    hazardsOfType.forEach((hazard, index) => {
-      if (index >= 2) hazard.remove();
+function pruneUnsafeDrops() {
+  Array.from(mazeBoard.querySelectorAll(".drop")).forEach((drop) => {
+    const dropBounds = drop.getBoundingClientRect();
+    const mazeBounds = mazeBoard.getBoundingClientRect();
+    const isInsideBoard =
+      dropBounds.left > mazeBounds.left + 2 &&
+      dropBounds.right < mazeBounds.right - 2 &&
+      dropBounds.top > mazeBounds.top + 2 &&
+      dropBounds.bottom < mazeBounds.bottom - 2;
+    const overlapsHazard = Array.from(hazards).some((hazard) => {
+      const hazardBounds = hazard.getBoundingClientRect();
+      return (
+        dropBounds.left < hazardBounds.right + 1 &&
+        dropBounds.right > hazardBounds.left - 1 &&
+        dropBounds.top < hazardBounds.bottom + 1 &&
+        dropBounds.bottom > hazardBounds.top - 1
+      );
     });
+
+    if (!isInsideBoard || overlapsWall(drop, -2) || overlapsHazard) {
+      drop.remove();
+    }
   });
 }
 
-const allDrops = mazeBoard.querySelectorAll(".drop");
-const hazards = mazeBoard.querySelectorAll(".hazard");
+setHazardsForDifficulty();
+buildDropLayout();
 
-const placedHazards = [];
+let placedHazards = [];
 const mazeBounds = mazeBoard.getBoundingClientRect();
 const mazeWidth = mazeBoard.clientWidth;
 const mazeHeight = mazeBoard.clientHeight;
+let startingHazardPositions = new Map();
+let hazardMovement = new Map();
 
-hazards.forEach((hazard) => {
-  const originalLeft = Math.round(hazard.offsetLeft / mazeWidth * 100);
-  const originalTop = Math.round(hazard.offsetTop / mazeHeight * 100);
-  let bestPosition = null;
+function refreshHazardTracking() {
+  startingHazardPositions = new Map();
+  hazardMovement = new Map();
+  placedHazards = [];
 
-  for (let radius = 0; radius <= 94 && !bestPosition; radius += 1) {
-    for (let x = Math.max(2, originalLeft - radius); x <= Math.min(96, originalLeft + radius); x += 1) {
-      for (let y = Math.max(2, originalTop - radius); y <= Math.min(96, originalTop + radius); y += 1) {
-        if (Math.max(Math.abs(x - originalLeft), Math.abs(y - originalTop)) !== radius) continue;
+  hazards.forEach((hazard) => {
+    const originalLeft = Math.round(hazard.offsetLeft / mazeWidth * 100);
+    const originalTop = Math.round(hazard.offsetTop / mazeHeight * 100);
+    let bestPosition = null;
 
-        hazard.style.left = `${x}%`;
-        hazard.style.top = `${y}%`;
-        const bounds = hazard.getBoundingClientRect();
-        const outsideMaze =
-          bounds.left < mazeBounds.left + 5 ||
-          bounds.right > mazeBounds.right - 5 ||
-          bounds.top < mazeBounds.top + 5 ||
-          bounds.bottom > mazeBounds.bottom - 5;
-        const overlapsHazard = placedHazards.some((placedHazard) => {
-          const placedBounds = placedHazard.getBoundingClientRect();
-          return (
-            bounds.left < placedBounds.right + 2 &&
-            bounds.right > placedBounds.left - 2 &&
-            bounds.top < placedBounds.bottom + 2 &&
-            bounds.bottom > placedBounds.top - 2
-          );
-        });
+    for (let radius = 0; radius <= 94 && !bestPosition; radius += 1) {
+      for (let x = Math.max(2, originalLeft - radius); x <= Math.min(96, originalLeft + radius); x += 1) {
+        for (let y = Math.max(2, originalTop - radius); y <= Math.min(96, originalTop + radius); y += 1) {
+          if (Math.max(Math.abs(x - originalLeft), Math.abs(y - originalTop)) !== radius) continue;
 
-        if (!outsideMaze && !overlapsWall(hazard) && !overlapsHazard) {
-          bestPosition = [x, y];
-          break;
+          hazard.style.left = `${x}%`;
+          hazard.style.top = `${y}%`;
+          const bounds = hazard.getBoundingClientRect();
+          const outsideMaze =
+            bounds.left < mazeBounds.left + 5 ||
+            bounds.right > mazeBounds.right - 5 ||
+            bounds.top < mazeBounds.top + 5 ||
+            bounds.bottom > mazeBounds.bottom - 5;
+          const overlapsHazard = placedHazards.some((placedHazard) => {
+            const placedBounds = placedHazard.getBoundingClientRect();
+            return (
+              bounds.left < placedBounds.right + 2 &&
+              bounds.right > placedBounds.left - 2 &&
+              bounds.top < placedBounds.bottom + 2 &&
+              bounds.bottom > placedBounds.top - 2
+            );
+          });
+
+          if (!outsideMaze && !overlapsWall(hazard) && !overlapsHazard) {
+            bestPosition = [x, y];
+            break;
+          }
         }
+
+        if (bestPosition) break;
       }
-
-      if (bestPosition) break;
     }
-  }
 
-  if (bestPosition) {
-    hazard.style.left = `${bestPosition[0]}%`;
-    hazard.style.top = `${bestPosition[1]}%`;
-    placedHazards.push(hazard);
-  } else {
-    hazard.style.left = "";
-    hazard.style.top = "";
-  }
-});
+    if (bestPosition) {
+      hazard.style.left = `${bestPosition[0]}%`;
+      hazard.style.top = `${bestPosition[1]}%`;
+      placedHazards.push(hazard);
+    } else {
+      hazard.style.left = "";
+      hazard.style.top = "";
+    }
 
-const startingHazardPositions = new Map(
-  Array.from(hazards, (hazard) => [hazard, { left: hazard.style.left, top: hazard.style.top }]),
-);
-const hazardMovement = new Map(
-  Array.from(hazards, (hazard) => [hazard, { x: 0, y: 0, nextTurn: 0 }]),
-);
+    startingHazardPositions.set(hazard, { left: hazard.style.left, top: hazard.style.top });
+    hazardMovement.set(hazard, { x: 0, y: 0, nextTurn: 0 });
+  });
+}
+
+refreshHazardTracking();
 
 let score = 0;
 let lives = startingLives;
@@ -195,6 +380,9 @@ let hazardMovementInterval = null;
 let playerMovementInterval = null;
 let playerDirection = null;
 let hazardCollisionCooldown = 0;
+let isMilestonePause = false;
+const waterMilestones = [25, 50, 75];
+const reachedWaterMilestones = new Set();
 
 // Show the current score, lives, and drops left on the page.
 function updateGameDisplay() {
@@ -211,7 +399,7 @@ function updateControlButtons() {
   });
   pauseButton.disabled = !isGameRunning;
   pauseButton.textContent = isPaused ? "Resume" : "Pause";
-  resumeButton.hidden = !isPaused;
+  resumeButton.hidden = !isPaused || isMilestonePause;
 }
 
 // Return the game to its initial state without starting the hazards.
@@ -227,6 +415,9 @@ function resetGame() {
   hazardCollisionCooldown = 0;
   isGameRunning = false;
   isPaused = false;
+  isMilestonePause = false;
+  reachedWaterMilestones.clear();
+  setupContent.hidden = true;
 
   allDrops.forEach((drop) => {
     drop.hidden = false;
@@ -252,6 +443,27 @@ function resetGame() {
   updateGameDisplay();
 }
 
+difficultySelect.addEventListener("change", () => {
+  currentDifficulty = difficultySelect.value;
+  setHazardsForDifficulty();
+  buildDropLayout();
+  refreshHazardTracking();
+  showSetupScreen();
+  updateGameDisplay();
+});
+
+function showSetupScreen() {
+  resetGame();
+  setupContent.hidden = false;
+  messageTitle.hidden = true;
+  messageText.hidden = true;
+  resumeButton.hidden = true;
+  restartButton.hidden = true;
+  gameMessage.hidden = false;
+  gameButton.disabled = true;
+  statusLabel.textContent = "START GAME";
+}
+
 // Start a new game after restoring the initial state.
 function startGame() {
   resetGame();
@@ -269,6 +481,8 @@ function endGame(won) {
   stopPlayerMovement();
   isGameRunning = false;
   isPaused = false;
+  isMilestonePause = false;
+  setupContent.hidden = true;
   if (won) {
     winSound.currentTime = 0;
     winSound.play().catch((error) => {
@@ -277,7 +491,9 @@ function endGame(won) {
   }
   gameButton.disabled = false;
   statusLabel.textContent = "PLAY AGAIN?";
+  messageTitle.hidden = false;
   messageTitle.textContent = won ? "You did It!" : "Game Over!";
+  messageText.hidden = false;
   messageText.textContent = won
     ? "You collected enough safe water!"
     : "You ran out of lives!";
@@ -288,16 +504,20 @@ function endGame(won) {
 
 // Show or hide the pause message and pause both keyboard and touchscreen play.
 function setPaused(paused) {
+  if (isMilestonePause) return;
   if (paused) stopPlayerMovement();
 
   isPaused = paused;
   statusLabel.textContent = isPaused ? "GAME PAUSED" : "GAME IN PROGRESS";
 
   if (isPaused) {
+    setupContent.hidden = true;
     messageTitle.textContent = "Paused";
+    messageTitle.hidden = false;
     messageText.textContent = window.matchMedia("(max-width: 540px)").matches
       ? "Tap Resume to continue."
       : "Press SPACE to resume.";
+    messageText.hidden = false;
     restartButton.hidden = true;
     gameMessage.hidden = false;
   } else {
@@ -440,8 +660,9 @@ function moveHazard(hazard, movement, now) {
   const startTop = parseFloat(getComputedStyle(hazard).top);
   const maxLeft = mazeBoard.clientWidth - hazard.offsetWidth;
   const maxTop = mazeBoard.clientHeight - hazard.offsetHeight;
-  const distanceX = movement.x * 0.75;
-  const distanceY = movement.y * 0.75;
+  const mobileSpeedScale = isMobileDevice ? Math.min(mazeBoard.clientWidth / 860, 1) : 1;
+  const distanceX = movement.x * 0.75 * mobileSpeedScale;
+  const distanceY = movement.y * 0.75 * mobileSpeedScale;
   const steps = Math.ceil(Math.max(Math.abs(distanceX), Math.abs(distanceY)) / 0.25);
 
   for (let step = 1; step <= steps; step += 1) {
@@ -522,9 +743,10 @@ function isOutsideMazeBorder(element) {
 // Check whether the player is touching a drop or a hazard.
 function checkForCollisions() {
   const playerBounds = player.getBoundingClientRect();
+  let reachedMilestone = null;
 
-  allDrops.forEach((drop) => {
-    if (drop.hidden) return;
+  for (const drop of allDrops) {
+    if (drop.hidden) continue;
 
     const dropBounds = drop.getBoundingClientRect();
     const touchedDrop =
@@ -537,12 +759,34 @@ function checkForCollisions() {
       drop.hidden = true;
       score += 100;
       dropsRemaining -= 1;
+      collectSound.currentTime = 0;
+      collectSound.play().catch((error) => {
+        console.error("Could not play the collection sound:", error);
+      });
+
+      const collectedDrops = allDrops.length - dropsRemaining;
+      const milestone = waterMilestones.find((percent) => {
+        const milestoneDropCount = Math.ceil(allDrops.length * percent / 100);
+        return collectedDrops >= milestoneDropCount && !reachedWaterMilestones.has(percent);
+      });
+
+      if (milestone !== undefined) {
+        reachedMilestone = milestone;
+        reachedWaterMilestones.add(milestone);
+        break;
+      }
     }
-  });
+  }
 
   if (dropsRemaining === 0) {
     updateGameDisplay();
     endGame(true);
+    return;
+  }
+
+  if (reachedMilestone !== null) {
+    updateGameDisplay();
+    showWaterMilestone(reachedMilestone);
     return;
   }
 
@@ -573,11 +817,49 @@ function checkForCollisions() {
   }
 }
 
-gameButton.addEventListener("click", startGame);
-restartButton.addEventListener("click", startGame);
+function showWaterMilestone(percent) {
+  const collectedDrops = allDrops.length - dropsRemaining;
+  stopPlayerMovement();
+  isPaused = true;
+  isMilestonePause = true;
+  setupContent.hidden = true;
+  messageTitle.textContent = `${percent}% complete!`;
+  messageTitle.hidden = false;
+  messageText.textContent = window.matchMedia("(max-width: 540px)").matches
+    ? `${collectedDrops} of ${allDrops.length} water droplets collected. Tap Resume to continue.`
+    : `${collectedDrops} of ${allDrops.length} water droplets collected. Press SPACE to continue.`;
+  messageText.hidden = false;
+  resumeButton.hidden = true;
+  restartButton.hidden = true;
+  gameMessage.hidden = false;
+  statusLabel.textContent = "MILESTONE REACHED";
+  updateControlButtons();
+}
+
+function continueFromMilestone() {
+  if (!isMilestonePause) return;
+
+  isMilestonePause = false;
+  isPaused = false;
+  gameMessage.hidden = true;
+  statusLabel.textContent = "GAME IN PROGRESS";
+  updateControlButtons();
+}
+
+gameButton.addEventListener("click", showSetupScreen);
+setupStartButton.addEventListener("click", startGame);
+restartButton.addEventListener("click", () => {
+  resetGame();
+});
 resetButton.addEventListener("click", resetGame);
 pauseButton.addEventListener("click", () => {
-  if (isGameRunning) setPaused(!isPaused);
+  if (!isGameRunning) return;
+
+  if (isMilestonePause) {
+    continueFromMilestone();
+  } else {
+    setPaused(!isPaused);
+  }
 });
 resumeButton.addEventListener("click", () => setPaused(false));
 directionButtons.forEach((button) => {
@@ -595,6 +877,11 @@ window.addEventListener("blur", stopPlayerMovement);
 document.addEventListener("keydown", (event) => {
   if (event.code === "Space" && isGameRunning) {
     event.preventDefault();
+    if (isMilestonePause) {
+      continueFromMilestone();
+      return;
+    }
+
     setPaused(!isPaused);
     return;
   }
@@ -617,3 +904,4 @@ document.addEventListener("keydown", (event) => {
 
 updateGameDisplay();
 updateControlButtons();
+resetGame();
